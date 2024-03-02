@@ -1,0 +1,10 @@
+/#init.el#
+/.cache/
+/early-init.el~
+/eln-cache/
+/eshell/
+/history
+/init.el~
+/projectile-bookmarks.eld
+/straight/
+/transient/

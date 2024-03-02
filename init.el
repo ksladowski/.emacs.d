@@ -349,6 +349,8 @@
 
 ;;;; undo
 (use-package undo-tree
+  :custom
+  (undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
   :ensure t
   :general
   (general-mmap undo-tree-visualizer-mode-map
