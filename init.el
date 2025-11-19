@@ -1,6 +1,8 @@
-;;; Package management
-;;;; Replace package.el with straight.el
-;; package.el is disabled in early-init
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Package management
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Straight.el bootstrapping(package.el disabled in early-init)
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -13,36 +15,39 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
-;;;; Use-package
-;; install use-package
+
+;; Install use-package
 (straight-use-package 'use-package)
 
-;; install packages using straight wihtout explicitly specifying
-;; even though straight was bootstrapped in the previous section, i prefer to configure it with use-package
+;; Configure straight
 (use-package straight
-  :custom (straight-use-package-by-default t))
-;;; Keybindings
-;;;; which-key
-(use-package which-key
-  :custom
-  (which-key-idle-delay 1)
-  :config
-  (which-key-mode 1))
-;;;; evil
-;;;;; functions for w and wq
-(defun my/ex-kill-buffer-and-close ()
-  (interactive)
-  (unless (char-equal (elt (buffer-name) 0) ?*)
-    (kill-this-buffer)))
+  :custom (straight-use-package-by-default t) ;; Without this we need to add the :straight keyword symbol
+  )
 
-(defun my/ex-save-kill-buffer-and-close ()
-  (interactive)
-  (save-buffer)
-  (kill-this-buffer))
+;; Benchmarking startup. Should be as early as possible after use-package
+;; Normally kept commented out unless trying to identify an issue
+;; (use-package benchmark-init
+;;   :ensure t
+;;   :config
+;;   ;; To disable collection of benchmark data after init is done.
+;;   (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
-;;;;; main
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Keybindings / Evil Mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package evil
+  :preface
+  ;; Custom function for :q
+  (defun my/ex-kill-buffer-and-close ()
+    (interactive)
+    (unless (char-equal (elt (buffer-name) 0) ?*)
+      (kill-this-buffer)))
+  ;; Custom function for :wq
+  (defun my/ex-save-kill-buffer-and-close ()
+    (interactive)
+    (save-buffer)
+    (kill-this-buffer))
   :custom
   (evil-want-integration t)
   (evil-want-keybinding nil)
@@ -52,9 +57,7 @@
   (evil-undo-system 'undo-tree)
   :config
   (evil-mode 1)
-  (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
-  (define-key evil-insert-state-map (kbd "C-h") 'evil-backward-char)
-  (define-key evil-insert-state-map (kbd "C-l") 'evil-forward-char)
+  (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state) ;; Treat C-g like <escape>
 
   ;; Use visual line motions even outside of visual-line-mode buffers
   (evil-global-set-key 'motion "j" 'evil-next-visual-line)
@@ -66,35 +69,50 @@
   (evil-set-initial-state 'messages-buffer-mode 'normal)
   (evil-set-initial-state 'dashboard-mode 'normal))
 
-;;;;; evil collection
-
 (use-package evil-collection
   :after evil
   :config
   (evil-collection-init))
 
-;;;;; evil goggles
-
 (use-package evil-goggles
+  :after evil
   :config (evil-goggles-mode))
 
-;;;;; evil snipe
 (use-package evil-snipe
+  :after evil
   :custom
   (evil-snipe-override-mode t)
   (evil-snipe-smart-case t)
   (evil-snipe-repeat-keys t)
   (evil-snipe-override-evil t)
   (evil-snipe-override-evil-repeat-keys 1))
-;;;; general.el
+
+(use-package evil-commentary
+  :after evil
+  :config
+  (evil-commentary-mode))
+
+(use-package evil-surround
+  :config
+  (global-evil-surround-mode 1))
+
+(use-package which-key
+  :custom
+  (which-key-idle-delay 1)
+  :config
+  (which-key-mode 1))
+
+;; General
 (use-package general
-  :after (evil which-key)
   :config
   (general-evil-setup)
   (general-auto-unbind-keys)
+  (general-def "<escape>" 'keyboard-escape-quit) ;; Treat <escape> like C-g
   (general-create-definer my/leader-def
-	:prefix "SPC")
-  (my/leader-def 'normal
+    :keymaps '(normal insert visual emacs)
+    :global-prefix "C-c"
+    :prefix "SPC")
+  (my/leader-def
     "w" 'evil-window-map
     "h" 'help-command
     "`" 'tmm-menubar
@@ -103,54 +121,37 @@
     "bb" 'consult-buffer
     "bk" 'kill-this-buffer
     ":" 'execute-extended-command))
-;;;; hydra
-;(use-package hydra)
-;;;; hercules
-;(use-package hercules)
-;;;; misc changes
-;; make esc quit prompts (C-g)
-(general-def "<escape>" 'keyboard-escape-quit)
-;;;; minibuffer
-(general-def 'minibuffer-local-map
-  "C-h" 'left-char
-  "C-l" 'right-char)
-;;; UI Changes
-;;;; Strip down vanilla components
 
-;; visual bell (modeline blink)
+;; TODO hydra
+;; TODO hercules
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; User Interface
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (setq visible-bell t)
 
-;; margins and whitespace
 (column-number-mode)
 (global-display-line-numbers-mode t)
-(add-hook 'before-save-hook (lambda () (delete-trailing-whitespace)))
 
-;;;; theme
-
-;; set theme based on hostname
-(use-package doom-themes
+(use-package catppuccin-theme
   :config
-    (load-theme 'doom-dracula t))
+  (load-theme 'catppuccin t))
 
-;;;; modeline
 (use-package doom-modeline
   :custom
-  (doom-modeline-height 15)
+  (doom-modeline-height 22)
+  (doom-modeline-bar-width 5)
+  (doom-modeline-hud t)
+  (doom-modeline-percent-position '(-3 ""))
   :config
   (doom-modeline-mode 1))
-;;;;; hide modeline when possible
-(use-package hide-mode-line
-  :defer t)
 
-;;;; font
-(set-face-attribute 'default nil :font "Fira Mono" :height 100)
+;; Fonts
+(set-face-attribute 'default nil :font "Jetbrains Mono Nerd Font" :height 100)
 (set-face-attribute 'variable-pitch nil :font "Cantarell" :height 100)
-;;;; help windows
-;;auto-switch to new help windows on open
-(setq help-window-select t)
-;;;; tabs
-;;;; new buffers
-;;;; disable ansi color in compile mode
+
+;; Colorize ANSI escape sequences
 (use-package ansi-color
   :config
   (defun my/colorize-compilation-buffer ()
@@ -158,11 +159,24 @@
       (ansi-color-apply-on-region compilation-filter-start (point-max))))
   :hook (compilation-filter . my/colorize-compilation-buffer))
 
-;;; Environment
-;;;; Temp files, backups, etc
-;; lockfiles frequently cause problems with git repos apparently
+;; Auto-switch to new help windows on open
+(setq help-window-select t)
+
+;; Filetree
+(use-package treemacs
+  :ensure t
+  :defer t
+  :general
+  (my/leader-def 'normal
+    "<tab>" 'treemacs))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Environment
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Disable lockfiles
 (setq create-lockfiles nil)
-;; Put backup files neatly away
+;; Put backup files neatly away instead of littering all over the file system
 (let ((backup-dir "~/.local/share/emacs/backups")
       (auto-saves-dir "~/.local/share/emacs/auto-saves/"))
   (dolist (dir (list backup-dir auto-saves-dir))
@@ -179,16 +193,26 @@
       version-control t      ; Use version numbers on backups,
       kept-new-versions 5    ; keep some new versions
       kept-old-versions 2)   ; and some old ones, too
-;;;; init env vars
+
+;; Environment Variables
 (use-package exec-path-from-shell
   :config
   (exec-path-from-shell-initialize))
-;;; Editing experience
-;;;; Project management
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Version Control, Editor Settings, Projects, Etc
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Auto clean whitespaces
+(add-hook 'before-save-hook (lambda () (delete-trailing-whitespace)))
+
+(electric-pair-mode 1)
+(electric-indent-mode 1)
+
 (use-package projectile
   :init (projectile-mode 1)
   :custom
-  (projectile-project-search-path '("~/Repos"))
+  (projectile-project-search-path '("~/Projects"))
   (projectile-switch-project-action #'projectile-dired)
   (projectile-enable-caching t)
   (projectile-indexing-method 'hybrid)
@@ -196,21 +220,13 @@
   :general
   (my/leader-def 'normal
     "p" 'projectile-command-map))
-;;;; magit
+
 (use-package magit
   :defer t
   :general
   (my/leader-def 'normal
     "g" 'magit-status))
-;;;; treemacs
-(use-package treemacs
-  :ensure t
-  :defer t
-  :config
-  :general
-  (my/leader-def 'normal
-    "<tab>" 'treemacs))
-;;;; Syntax checking
+
 (use-package flycheck
   :diminish flycheck-mode
   :hook
@@ -224,20 +240,9 @@
         flycheck-indication-mode 'left-fringe
         flycheck-standard-error-navigation t
         flycheck-deferred-syntax-check nil))
-;; pretty define hydra-flycheck TODO TODO
 
-;;;; matching delimiters
-(electric-pair-mode 1)
-(electric-indent-mode 1)
-;;;;; evil surround
-(use-package evil-surround
-  :config
-  (global-evil-surround-mode 1))
-;;;; commenting
-(use-package evil-nerd-commenter
-  :general
-  (general-nvmap "C-/" 'evilnc-comment-or-uncomment-lines))
-;;;; Code snippets
+;; TODO flycheck hydra
+
 (use-package yasnippet-snippets)
 (use-package yasnippet
   :diminish yas-minor-mode
@@ -250,13 +255,14 @@
     "se" 'yas-visit-snippet-file
     "ss" 'yas-insert-snippet)
   )
+
 ;;;; LSP
 ;; (use-package lsp-mode
 ;;   :defer t
 ;;   :commands (lsp lsp-deferred)
 ;;   :custom
 ;;   (lsp-completion-providern :none) ;;use corfu
-;;   :general
+;;  :general
 ;;   (my/leader-def 'normal
 ;;     "ll" 'lsp-keymap)
 ;;   :hook (python-mode . lsp-deferred)
@@ -298,54 +304,46 @@
   :init
   (global-corfu-mode)
   :custom
-  (corfu-auto nil)
-  (corfu-quit-at-boundary t))
+  (corfu-auto t)
+  (corfu-quit-at-boundary t)
+  (corfu-preview-current nil)
+  (corfu-preselect 'prompt))
 
-(use-package dabbrev)
+;; TODO dabbrev w/ corfu
 
-;;;;; keybinds need to be handled separately due to evil conflicts
+;; TODO orderless w/ corfu
 
-;; first function written by myself!
-;; return "ignores" the completion buffer
-(defun my/corfu-return ()
-  (interactive)
-  (corfu-quit)
-  (evil-ret-and-indent))
+;; TODO cape w/ corfu
+;; https://github.com/minad/corfu
 
-(defun my/corfu-esc ()
-  (interactive)
-  (corfu-quit)
-  (evil-force-normal-state))
+;; TODO move to top, consolidate other misc configurations here
+(use-package emacs
+  :custom
 
-(general-def
-  :keymaps 'completion-in-region-mode
-  :definer 'minor-mode
-  :states 'insert
-  :predicate 'corfu-mode
-  "C-j" 'corfu-next
-  "C-k" 'corfu-previous
-  "C-l" 'corfu-insert
-  "<return>" 'my/corfu-return
-  "<escape>" 'my/corfu-esc)
+  ;; Enable indentation+completion using the TAB key.
+  (tab-always-indent 'complete)
 
-;;;; Outlining for comments (pseudo org)
+  ;; TODO Try `cape-dict' as an alternative.
+  (text-mode-ispell-word-completion nil)
 
-;; Easier navigation for source files, especially this one.
-(use-package outshine
-  :general
-  (:keymaps 'outshine-mode-map
-            "TAB" 'outshine-kbd-tab)
-  :hook (emacs-lisp-mode . outshine-mode))
+  ;; Hide commands in M-x which do not apply to the current mode
+  (read-extended-command-predicate #'command-completion-default-include-p))
+
+;; (use-package corfu
+;;   :init
+;;   (global-corfu-mode)
+;;   )
+
+;; (use-package dabbrev)
 
 ;;;; spaces not tabs
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
+`
 ;;;; highlighting
-
 ;;highlight delimiter characters (),[], etc
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
-
 
 ;;;; undo
 (use-package undo-tree
@@ -366,19 +364,9 @@
   ;; undo tree forces itself off if any bindings related to undo are changed. here we override the function to always return nil
   (with-eval-after-load 'undo-tree
     (defun undo-tree-overridden-undo-bindings-p () nil)))
-;;;; quickrun
-(use-package quickrun
-  :general
-  (my/leader-def 'normal
-    "lr" 'quickrun))
 ;;; Languages
 ;;;; Ansible
-;;;; Java
-;; (use-package lsp-java
-;;   :ensure t
-;;   :config (add-hook 'java-mode-hook 'lsp))
 ;;;; Python
-;;;;; language config
 ;; (use-package python
 ;;   :config
 ;;   ;; Remove guess indent python message
@@ -435,29 +423,20 @@
 
 (use-package vertico
   :init (vertico-mode)
-  :general
-  (:keymaps 'vertico-map
-            "C-j" 'vertico-next
-            "C-k" 'vertico-previous)
-  :straight '( vertico :files (:defaults "extensions/*")
-                       :includes (vertico-buffer
-                                  vertico-directory
-                                  vertico-flat
-                                  vertico-indexed
-                                  vertico-mouse
-                                  vertico-quick
-                                  vertico-repeat
-                                  vertico-reverse)))
-
 ;; disable straight for extensions since they are installed with the vertico package. we just need to activate them
+  :straight '( vertico :files (:defaults "extensions/*")
+               :includes (vertico-buffer
+                          vertico-directory
+                          vertico-flat
+                          vertico-indexed
+                          vertico-mouse
+                          vertico-quick
+                          vertico-repeat
+                          vertico-reverse)))
+
 
 (use-package vertico-directory
   :after vertico
-  ;; More convenient directory navigation commands
-  :general
-  (:keymaps 'vertico-map
-            "C-l" 'vertico-directory-enter
-            "C-h" 'vertico-directory-up)
   ;; Tidy shadowed file names
   :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 
