@@ -1,4 +1,4 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Package management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -77,6 +77,29 @@
   (tab-width 4)
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; General.el
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; General needs to come at the top in order to provide the ':general' keyword.
+(use-package general
+  :config
+  (general-evil-setup)
+  (general-auto-unbind-keys)
+  (general-def "<escape>" 'keyboard-escape-quit) ;; Treat <escape> like C-g
+  (general-create-definer my/leader-def
+    :keymaps '(normal insert visual emacs)
+    :global-prefix "C-c"
+    :prefix "SPC")
+  (my/leader-def
+    "w" 'evil-window-map
+    "h" 'help-command
+    "`" 'tmm-menubar
+    "ff" 'find-file
+    "fd" 'dired
+    "bb" 'consult-buffer
+    "bk" 'kill-this-buffer
+    ":" 'execute-extended-command))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Packages (Alphabetical)
@@ -93,23 +116,26 @@
   :custom
   (aw-dispatch-always t)
   :general
-  ;; Queue "?" key command to be sent. Automatically open help when calling ace-window
+  ; ; Queue "?" key command to be sent. Automatically open help when calling ace-window
   (my/leader-def 'normal
     "w"
     '(lambda () (interactive)
        (setq unread-command-events (listify-key-sequence (kbd "?")))
        (ace-window nil))
     )
+  )
 
 (use-package avy
   :general
   (general-define-key
-   :states '(normal visual motion)
-   :prefix "s"
-   "s" 'evil-avy-goto-char-timer
-   "j" 'evil-avy-goto-line-below
-   "k" 'evil-avy-goto-line-above
-   )
+    :states '(normal visual motion)
+    :prefix "s"
+    "" nil
+    "s" 'evil-avy-goto-char-timer
+    "j" 'evil-avy-goto-line-below
+    "k" 'evil-avy-goto-line-above
+    )
+  )
 
 (use-package catppuccin-theme
   :config
@@ -294,25 +320,6 @@ targets."
         flycheck-deferred-syntax-check nil))
 
 ;; TODO flycheck hydra
-
-(use-package general
-  :config
-  (general-evil-setup)
-  (general-auto-unbind-keys)
-  (general-def "<escape>" 'keyboard-escape-quit) ;; Treat <escape> like C-g
-  (general-create-definer my/leader-def
-    :keymaps '(normal insert visual emacs)
-    :global-prefix "C-c"
-    :prefix "SPC")
-  (my/leader-def
-    "w" 'evil-window-map
-    "h" 'help-command
-    "`" 'tmm-menubar
-    "ff" 'find-file
-    "fd" 'dired
-    "bb" 'consult-buffer
-    "bk" 'kill-this-buffer
-    ":" 'execute-extended-command))
 
 (use-package magit
   :defer t
